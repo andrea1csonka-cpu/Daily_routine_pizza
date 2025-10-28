@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Daily Routine - 24h Planner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* CSS Változók */
+        :root {
+            --color-sleep: #4e79a7; --color-sports: #f28e2c; --color-traveling: #e15759; --color-studying: #76b7b2;
+            --color-video-games: #59a14f; --color-social-media: #af7aa1; --color-talking: #ff9da7; --color-meals: #9d7660;
+            --color-watching-tv: #bab0ab; --color-shopping: #9c755f; --color-chores: #d7b5a1; --color-personal-care: #d4a761;
+            --color-hanging-out: #4d4d4d;
+
+            /* Új háttér/téma változók */
+            --text-color: #333;
+            --container-bg: rgba(255, 255, 255, 0.95); /* Majdnem átlátszatlan konténer a háttérkép fölé */
+            --header-color: #e74c3c;
+            --info-box-bg: #fff0d9;
+            --border-color: #ccc;
+        }
+
+        /* Általános stílusok */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex; 
+            flex-direction: column; /* Hogy a dátum a tetején legyen */
+            align-items: center; 
+            /* Háttérkép beállítások */
+            background-image: url('https://picsum.photos/1920/1080?random=1'); /* Egy véletlenszerű kép, később cserélheti */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* Overlay a háttérkép felett az áttetszőséghez */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.6); /* Fehér overlay 60% áttetszőséggel */
+            z-index: -1; /* A tartalom alá kerül */
+        }
+
+        .date-picker-container {
+            background-color: var(--container-bg);
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .date-picker-container label {
+            font-weight: bold;
+            color: var(--header-color);
+            font-size: 1.1em;
+        }
+        .date-picker-container input[type="date"] {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1em;
+            color: var(--text-color);
+            background-color: #f8f8f8;
+            cursor: pointer;
+        }
+
+
+        .container {
+            display: flex; 
+            gap: 30px; 
+            background-color: var(--container-bg); 
+            padding: 30px; 
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); 
+            max-width: 1200px; 
+            width: 100%; 
+            position: relative;
+            z-index: 0; /* A konténer a háttérkép és overlay fölé kerül */
+        }
+
+        .inputs-section { flex: 1; min-width: 400px; }
+        .chart-section { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding-left: 20px; 
+        }
+        h2 { color: var(--header-color); margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        .info-box { 
+            background-color: var(--info-box-bg); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 25px; 
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .info-box p { margin: 5px 0; }
+
+        .activity { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 12px; 
+            padding: 8px 0; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        .activity-label { flex: 2; display: flex; align-items: center; font-weight: bold; }
+        .color-dot { width: 14px; height: 14px; border-radius: 50%; margin-right: 12px; border: 1px solid rgba(0, 0, 0, 0.1); }
+        .time-input { flex: 1; display: flex; align-items: center; gap: 8px; }
+        .time-input input { 
+            width: 45px; 
+            padding: 8px; 
+            border: 1px solid var(--border-color); 
+            background-color: #f8f8f8; 
+            color: var(--text-color); 
+            border-radius: 5px; 
+            text-align: center;
+            font-size: 1em;
+        }
+        
+        /* Kördiagram stílusok */
+        .pie-chart-container {
+            width: 300px; height: 300px; position: relative; border-radius: 50%; background-color: #e0e0e0; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .pie-chart {
+            width: 100%; height: 100%; 
+            clip-path: circle(50% at 50% 50%); 
+            background: conic-gradient(transparent 0deg); 
+        }
+        .center-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background-color: var(--container-bg);
+            width: 120px; height: 120px; border-radius: 50%; 
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; font-size: 1.6em; font-weight: bold; 
+            border: 4px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .center-text span:last-child {
+            font-size: 0.6em; font-weight: normal; color: #666;
+        }
+
+        /* Jelmagyarázat stílusok */
+        .legend { 
+            display: flex; flex-wrap: wrap; gap: 15px; margin-top: 30px; max-width: 400px; 
+            align-self: flex-start; 
+            padding-left: 10px;
+        }
+        .legend h3 {
+             align-self: flex-start; 
+             width: 100%;
+             color: var(--header-color);
+             margin-top: 0;
+             margin-bottom: 15px;
+             text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+        .legend-item { 
+            display: flex; align-items: center; width: calc(50% - 8px); font-size: 0.95em; 
+        }
+
+        /* Letöltés gomb stílusa */
+        .download-button {
+            margin-top: 25px;
+            padding: 12px 25px;
+            background-color: #28a745; 
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .download-button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+        .download-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Nyomtatási stílusok */
+        @media print {
+            body::before { display: none; } /* Overlay elrejtése nyomtatáskor */
+            body { background-image: none; background-color: #fff; } /* Háttérkép elrejtése nyomtatáskor */
+            .date-picker-container, .download-button { display: none; } /* Nem releváns elemek elrejtése */
+            .container { box-shadow: none; border: 1px solid #eee; margin: 0; padding: 0; width: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="date-picker-container">
+    <label for="current-date">Date for this plan:</label>
+    <input type="date" id="current-date">
+</div>
+
+<div class="container" id="planner-container">
+    <div class="inputs-section">
+        <h2>🗓️ Daily Routine Planner (24h)</h2>
+        <div class="info-box">
+            <p><strong>Total Hours Available:</strong> 24:00</p>
+            <p id="total-used-time"><strong>Time Used:</strong> 00:00</p>
+            <p id="remaining-time"><strong>Time Remaining:</strong> 24:00</p>
+            <p id="percentage-used"><strong>% Used:</strong> 0%</p>
+        </div>
+
+        <form id="routine-form">
+            <div class="activity" data-activity="Sleep"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-sleep);"></span>Sleep</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="sleep-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="sleep-m"> m</div></div>
+            <div class="activity" data-activity="Sports"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-sports);"></span>Sports</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="sports-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="sports-m"> m</div></div>
+            <div class="activity" data-activity="Traveling (public transport etc.)"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-traveling);"></span>Traveling (public transport etc.)</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="traveling-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="traveling-m"> m</div></div>
+            <div class="activity" data-activity="Studying at home"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-studying);"></span>Studying at home</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="studying-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="studying-m"> m</div></div>
+            <div class="activity" data-activity="Playing video games"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-video-games);"></span>Playing video games</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="video-games-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="video-games-m"> m</div></div>
+            <div class="activity" data-activity="Social media"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-social-media);"></span>Social media</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="social-media-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="social-media-m"> m</div></div>
+            <div class="activity" data-activity="Talking to family"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-talking);"></span>Talking to family</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="talking-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="talking-m"> m</div></div>
+            <div class="activity" data-activity="Meals (lunch etc.)"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-meals);"></span>Meals (lunch etc.)</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="meals-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="meals-m"> m</div></div>
+            <div class="activity" data-activity="Watching TV (or Netflix)"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-watching-tv);"></span>Watching TV (or Netflix)</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="watching-tv-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="watching-tv-m"> m</div></div>
+            <div class="activity" data-activity="Shopping"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-shopping);"></span>Shopping</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="shopping-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="shopping-m"> m</div></div>
+            <div class="activity" data-activity="Doing household chores"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-chores);"></span>Doing household chores</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="chores-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="chores-m"> m</div></div>
+            <div class="activity" data-activity="Personal care (e.g. washing)"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-personal-care);"></span>Personal care (e.g. washing)</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="personal-care-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="personal-care-m"> m</div></div>
+            <div class="activity" data-activity="Hanging out with friends"><div class="activity-label"><span class="color-dot" style="background-color: var(--color-hanging-out);"></span>Hanging out with friends</div><div class="time-input"><input type="number" min="0" max="24" value="0" data-unit="hours" id="hanging-out-h"> h<input type="number" min="0" max="59" value="0" data-unit="minutes" id="hanging-out-m"> m</div></div>
+        </form>
+    </div>
+
+    <div class="chart-section">
+        <h2>📊 Time Distribution</h2>
+        <div class="pie-chart-container">
+            <div class="pie-chart" id="pie-chart"></div>
+            <div class="center-text">
+                <span id="center-percentage">0%</span>
+                <span style="font-size: 0.5em; font-weight: normal;">Total</span>
+            </div>
+        </div>
+
+        <div class="legend" id="legend">
+            <h3>Key</h3>
+            </div>
+        
+        <button class="download-button" id="download-jpg-button">⬇️ Download as JPG</button>
+    </div>
+</div>
+
+<script>
+    const TOTAL_MINUTES_IN_DAY = 24 * 60;
+    const activities = [
+        { name: "Sleep", varName: "sleep", colorVar: "--color-sleep" },
+        { name: "Sports", varName: "sports", colorVar: "--color-sports" },
+        { name: "Traveling (public transport etc.)", varName: "traveling", colorVar: "--color-traveling" },
+        { name: "Studying at home", varName: "studying", colorVar: "--color-studying" },
+        { name: "Playing video games", varName: "video-games", colorVar: "--color-video-games" },
+        { name: "Social media", varName: "social-media", colorVar: "--color-social-media" },
+        { name: "Talking to family", varName: "talking", colorVar: "--color-talking" },
+        { name: "Meals (lunch etc.)", varName: "meals", colorVar: "--color-meals" },
+        { name: "Watching TV (or Netflix)", varName: "watching-tv", colorVar: "--color-watching-tv" },
+        { name: "Shopping", varName: "shopping", colorVar: "--color-shopping" },
+        { name: "Doing household chores", varName: "chores", colorVar: "--color-chores" },
+        { name: "Personal care (e.g. washing)", varName: "personal-care", colorVar: "--color-personal-care" },
+        { name: "Hanging out with friends", varName: "hanging-out", colorVar: "--color-hanging-out" },
+    ];
+
+    const form = document.getElementById('routine-form');
+    const pieChart = document.getElementById('pie-chart');
+    const totalUsedTimeEl = document.getElementById('total-used-time');
+    const remainingTimeEl = document.getElementById('remaining-time');
+    const percentageUsedEl = document.getElementById('percentage-used');
+    const centerPercentageEl = document.getElementById('center-percentage');
+    const legendEl = document.getElementById('legend');
+    const downloadButton = document.getElementById('download-jpg-button');
+    const currentDateInput = document.getElementById('current-date');
+    
+    // Segédfüggvény: Percből HH:MM formátum
+    function formatMinutes(totalMinutes) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    // Fő logikai függvény: Számolás és frissítés
+    function calculateRoutine() {
+        let totalMinutesUsed = 0;
+        const routineData = [];
+
+        activities.forEach(activity => {
+            const hInput = document.getElementById(`${activity.varName}-h`);
+            const mInput = document.getElementById(`${activity.varName}-m`);
+            
+            const hours = Math.max(0, parseInt(hInput.value) || 0);
+            const minutes = Math.max(0, parseInt(mInput.value) || 0);
+
+            hInput.value = hours;
+            mInput.value = minutes;
+
+            const activityMinutes = (hours * 60) + minutes;
+            totalMinutesUsed += activityMinutes;
+            
+            if (activityMinutes > 0) {
+                routineData.push({
+                    name: activity.name,
+                    minutes: activityMinutes,
+                    color: getComputedStyle(document.documentElement).getPropertyValue(activity.colorVar).trim()
+                });
+            }
+        });
+
+        const remainingMinutes = Math.max(0, TOTAL_MINUTES_IN_DAY - totalMinutesUsed);
+        const percentageUsed = Math.min(100, (totalMinutesUsed / TOTAL_MINUTES_IN_DAY) * 100).toFixed(1);
+
+        totalUsedTimeEl.innerHTML = `<strong>Time Used:</strong> ${formatMinutes(totalMinutesUsed)}`;
+        remainingTimeEl.innerHTML = `<strong>Time Remaining:</strong> ${formatMinutes(remainingMinutes)}`;
+        percentageUsedEl.innerHTML = `<strong>% Used:</strong> ${percentageUsed}%`;
+        centerPercentageEl.textContent = `${percentageUsed}%`;
+        
+        updateChart(routineData, totalMinutesUsed);
+    }
+
+    // Diagram frissítő függvény (conic-gradient)
+    function updateChart(data, totalMinutesUsed) {
+        let currentAngle = 0;
+        let gradientStops = [];
+        
+        const effectiveTotal = Math.min(totalMinutesUsed, TOTAL_MINUTES_IN_DAY);
+
+        data.forEach(item => {
+            const degrees = (item.minutes / TOTAL_MINUTES_IN_DAY) * 360;
+            const startAngle = currentAngle;
+            const endAngle = currentAngle + degrees;
+
+            gradientStops.push(`${item.color} ${startAngle}deg ${endAngle}deg`);
+            
+            currentAngle = endAngle;
+        });
+
+        if (effectiveTotal < TOTAL_MINUTES_IN_DAY) {
+            const remainingDegrees = 360 - currentAngle;
+            gradientStops.push(`#e0e0e0 ${currentAngle}deg ${currentAngle + remainingDegrees}deg`); /* Világos szürke */
+        } else if (effectiveTotal === TOTAL_MINUTES_IN_DAY && data.length === 0) {
+             pieChart.style.background = `conic-gradient(#e0e0e0 0deg 360deg)`;
+             return;
+        } 
+        
+        pieChart.style.background = `conic-gradient(${gradientStops.join(', ')})`;
+        
+        updateLegend(data);
+    }
+
+    // Jelmagyarázat frissítő függvény
+    function updateLegend(data) {
+        let legendHtml = '<h3>Key</h3>';
+        
+        activities.forEach(activity => {
+            const itemData = data.find(d => d.name === activity.name);
+            const minutes = itemData ? itemData.minutes : 0;
+            const percentage = ((minutes / TOTAL_MINUTES_IN_DAY) * 100).toFixed(1);
+
+            const timeString = formatMinutes(minutes);
+
+            legendHtml += `
+                <div class="legend-item">
+                    <span class="color-dot" style="background-color: ${getComputedStyle(document.documentElement).getPropertyValue(activity.colorVar).trim()};"></span>
+                    ${activity.name} (${percentage}%) - ${timeString}
+                </div>
+            `;
+        });
+        legendEl.innerHTML = legendHtml;
+    }
+
+    // JPG letöltés funkció
+    downloadButton.addEventListener('click', () => {
+        const element = document.getElementById('planner-container'); 
+        html2canvas(element, { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: null, // Fontos, hogy a háttérkép és overlay is látszódjon
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const date = currentDateInput.value || 'unknown_date';
+            link.download = `daily_routine_planner_${date}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9); 
+            link.click();
+        });
+    });
+
+    form.addEventListener('input', calculateRoutine);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Alapértelmezett dátum a mai nap
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Hónap 0-tól indul
+        const dd = String(today.getDate()).padStart(2, '0');
+        currentDateInput.value = `${yyyy}-${mm}-${dd}`;
+
+        // Kezdő értékek beállítása
+        document.getElementById('sleep-h').value = 8;
+        document.getElementById('meals-h').value = 2;
+        document.getElementById('studying-h').value = 4;
+        document.getElementById('personal-care-h').value = 1;
+        document.getElementById('traveling-h').value = 1;
+        document.getElementById('sports-h').value = 1;
+        
+        calculateRoutine(); 
+    });
+</script>
+
+</body>
+</html>
